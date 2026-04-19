@@ -1,5 +1,23 @@
+import json
+
 import requests
 import urllib3
+
+
+def _to_gql_literal(value):
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return json.dumps(value)
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_to_gql_literal(item) for item in value) + "]"
+    if isinstance(value, dict):
+        return "{" + ", ".join(f"{key}: {_to_gql_literal(val)}" for key, val in value.items()) + "}"
+    raise TypeError(f"Unsupported type for GraphQL literal: {type(value).__name__}")
 
 class XIQSE:
     def __init__(self, host, client_id, client_secret, port=8443, protocol="https", validate_certs=True, timeout=30):
@@ -144,6 +162,26 @@ class XIQSE:
           """
 
         @staticmethod
+        def workflows_startWorkflow(path, variables=None):
+            path_literal        = json.dumps(path)
+            variables_literal   = _to_gql_literal(variables or {})
+            return f"""
+            mutation {{
+              workflows {{
+                startWorkflow(input: {{
+                  path: {path_literal}
+                  variables: {variables_literal}
+                }}){{
+                  executionId
+                  message
+                  operationId
+                  status
+                }}
+              }}
+            }}
+            """
+
+        @staticmethod
         def network_readDevices():
             return """
             mutation DeviceRead($ipAddress: String!) {
@@ -261,6 +299,20 @@ class XIQSE:
                 }
               """
 
+        class workflows:
+
+          @staticmethod
+          def execution():
+            return """
+              query Workflow($executionId: Int!) {
+                workflows {
+                  execution(executionId: $executionId) {
+                    status
+                  }
+                }
+              }
+            """
+
 
     class params:
         @staticmethod
@@ -323,3 +375,23 @@ class XIQSE:
         @staticmethod
         def get_timeout():
             return dict(type="int", required=False, default=30)
+
+        @staticmethod
+        def get_workflow_path():
+            return dict(type="str", required=True)
+
+        @staticmethod
+        def get_workflow_variables():
+            return dict(type="dict", required=False, default={})
+
+        @staticmethod
+        def get_wait():
+            return dict(type="bool", required=False, default=True)
+
+        @staticmethod
+        def get_poll_interval():
+            return dict(type="int", required=False, default=5)
+
+        @staticmethod
+        def get_poll_timeout():
+            return dict(type="int", required=False, default=600)

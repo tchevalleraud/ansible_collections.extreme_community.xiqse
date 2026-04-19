@@ -123,3 +123,39 @@ class ModuleDocFragment:
           type: int
           default: 30
     """
+    OPTIONS_WORKFLOW_PATH   = r"""
+      options:
+        path:
+          description:
+            - Full path of the workflow in XIQ-SE (e.g. "/Workflows/WF_TEST").
+          type: str
+          required: true
+    """
+    OPTIONS_WORKFLOW_VARIABLES = r"""
+      options:
+        variables:
+          description:
+            - Variables to pass to the workflow execution.
+            - Keys map to the workflow input variable names and values may be scalars or lists.
+          type: dict
+          required: false
+          default: {}
+    """
+    OPTIONS_WORKFLOW_WAIT   = r"""
+      options:
+        wait:
+          description:
+            - Whether to poll the workflow execution until it reaches a terminal status.
+          type: bool
+          default: true
+        poll_interval:
+          description:
+            - Interval in seconds between two execution status polls.
+          type: int
+          default: 5
+        poll_timeout:
+          description:
+            - Maximum time in seconds to wait for the workflow execution to reach a terminal status.
+          type: int
+          default: 600
+    """
