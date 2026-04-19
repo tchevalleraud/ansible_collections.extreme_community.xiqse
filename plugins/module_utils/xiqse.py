@@ -304,7 +304,7 @@ class XIQSE:
           @staticmethod
           def execution():
             return """
-              query Workflow($executionId: Int!) {
+              query Workflow($executionId: Long!) {
                 workflows {
                   execution(executionId: $executionId) {
                     status
