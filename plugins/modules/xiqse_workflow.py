@@ -93,6 +93,15 @@ TERMINAL_STATUSES   = {"CANCELED", "COMPLETED", "FAILED", "SKIPPED", "SUCCESS", 
 SUCCESS_STATUSES    = {"SUCCESS", "COMPLETED"}
 
 
+def _dig(mapping, *keys):
+    current = mapping
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
 def run_module():
     module_args = dict(
         path            = XIQSE.params.get_workflow_path(),
@@ -133,7 +142,7 @@ def run_module():
 
         start_query     = XIQSE.mutation.workflows_startWorkflow(path, variables)
         start_result    = xiqse.graphql(start_query)
-        start_data      = start_result.get("data", {}).get("workflows", {}).get("startWorkflow", {}) or {}
+        start_data      = _dig(start_result, "data", "workflows", "startWorkflow") or {}
 
         execution_id    = start_data.get("executionId")
         operation_id    = start_data.get("operationId")
@@ -160,8 +169,12 @@ def run_module():
 
         while True:
             poll_result     = xiqse.graphql(query_execution, {"executionId": execution_id})
-            execution_info  = poll_result.get("data", {}).get("workflows", {}).get("execution", {}) or {}
+            poll_errors     = poll_result.get("errors") if isinstance(poll_result, dict) else None
+            execution_info  = _dig(poll_result, "data", "workflows", "execution") or {}
             current_status  = execution_info.get("status") or current_status
+
+            if not execution_info and poll_errors:
+                raise Exception(f"Polling execution {execution_id} failed: {poll_errors}")
 
             if current_status in TERMINAL_STATUSES:
                 break
